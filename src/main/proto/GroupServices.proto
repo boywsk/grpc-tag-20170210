@@ -1,0 +1,73 @@
+syntax = "proto3";
+package com.gomeplus.grpc.protobuf;
+
+option java_multiple_files = false;
+
+//------------------Group群组信息----------------------------
+//Group信息
+message Group {
+    string groupId = 1;//群ID
+    int64 userId = 2;//用户ID
+    int32 type = 3;//聊天类型1-单聊;2-群聊
+    string groupName = 4;//群名称
+    string groupDesc = 5;//群描述
+    string avatar = 6;//群头像
+    string qRcode = 7;//群二维码
+    int32 capacity = 8;//群容量
+    int32 isAudit = 9;//是否需要审核;0-不需要审核;1-需要审核
+    int32 isDele = 10;//是否删除;0-未删除;1-删除
+    int64 createTime = 11;//创建时间
+    int64 updateTime = 12;//跟新时间
+    int64 seq = 13;//群最大消息ID
+    string subject = 14;//主题（暂时不同，可忽略）
+    string extraInfo=15;//OA-服务器的扩展信息
+}
+
+
+//请求参数
+message RequestGroup {
+    string appId = 1;
+    Group group = 2;
+    string groupId=3;//群ID
+    int32 isDel=4; //是否删除
+    string extraInfo=6;//OA-服务器的扩展信息
+    repeated string groupIds=5;//群ID集合
+    
+    int64 traceId=7;//记录ID
+	string extra=8;//用于扩展信息sh
+}
+
+//群组返回参数
+message RespnoseGroup{
+	bool success=1; //是否成功，若出现异常或其他错误返回false
+	Group group=2;//群组
+	repeated Group groups=3;//群组集合
+	repeated string groupIds=4;//群组ID的集合
+	map<string,Group> groupId2Group=5; //groupId->Map(Group)
+
+	string extraInfo=6;//OA-服务器的扩展信息
+	
+	int64 traceId=7;//记录ID
+	string extra=8;//用于扩展信息sh
+}
+
+service GroupService {
+	//保存群组 请求参数：Group
+	rpc SaveGroup(RequestGroup) returns (RespnoseGroup);
+	//更新群组 请求参数：Group
+    rpc UpdateGroup(RequestGroup) returns(RespnoseGroup);
+    //得到群组信息（无消息信息seq） ,请求参数：groupId,返回参数：Group
+    rpc getGroupNoSeqInfoByGroupId(RequestGroup) returns(RespnoseGroup);
+    //得到群组信息（包含群消息seq） ,请求参数：groupId,返回参数：Group
+    rpc getGroupContainSeqInfoByGroupId(RequestGroup) returns(RespnoseGroup);
+    //设置群为删除状态（群的删除未逻辑删除）,  请求参数：groupId
+    rpc setGroupIsDel(RequestGroup) returns (RespnoseGroup);
+    //根据groupIdList得到群信息集合 ,请求参数：groupIds,返回参数:groups(群集合List<Group>)
+    rpc getGroupsByGroupIds(RequestGroup) returns (RespnoseGroup);
+    //根据groupId集合批量获取Group映射 ,请求参数：groupIds，返回参数：groupId2GroupMap(map<string,Group> ) //key:groupId->value:(Group)
+    rpc getGroupId2GroupMap(RequestGroup) returns (RespnoseGroup);
+    //保存群组 请求参数：Group
+	rpc saveOrUpdateGroupById(RequestGroup) returns (RespnoseGroup);
+	//得到包含删除的群组信息
+	rpc getGroupContainDel(RequestGroup) returns (RespnoseGroup);
+}

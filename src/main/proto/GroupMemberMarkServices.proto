@@ -1,0 +1,81 @@
+syntax = "proto3";
+package com.gomeplus.grpc.protobuf;
+import "GomeplusRpcServices.proto";
+option java_multiple_files = false;
+
+//---------------------------GroupMemberMark 群成员备注相关
+
+//群成员备注信息
+message GroupMemberMark{
+	 string groupId=1;
+	 int64 userId=2;
+     int64 markedUserId=3;  //备注的用户id
+     string mark=4;        //备注用户名
+     int64 createTime=5;
+     int64 updateTime=6;
+}
+//群成员备注请求参数
+message RequestGroupMemberMark{
+	string appId=1;
+	GroupMemberMark memberMark=2;
+	string groupId=3;
+	int64 userId=4;
+	int64 markedUserId=5;
+	string mark=6;
+	repeated int64 idList=7;
+	repeated GroupMemberMark groupMemberMarks=8;
+	
+    int64 traceId=9;//记录ID
+	string extra=10;//用于扩展信息
+	
+	repeated ReqBatchGroupIdInfo reqBatchGroupIdInfos=11;//批量拉取群备注成员集合
+}
+//返回的集合
+message GroupMemberMarkCollection{
+	repeated GroupMemberMark groupMemberMarks =1 ;//群成员备注集合
+}
+
+//群成员备注相关
+message RespnoseGroupMemberMark{
+	bool success=1; //是否成功，若出现异常或其他错误返回false
+	repeated GroupMemberMark groupMemberMarks =2 ;//群成员备注集合
+	GroupMemberMark groupMemberMark =3 ;//群成员备注
+	
+	int64 traceId=4;//记录ID
+	string extra=5;//用于扩展信息
+	
+	map<string,GroupMemberMarkCollection> groupId2GroupMemberMark=6; //groupId->Map(GroupMemberMark)
+}
+
+
+service GroupMemberMarkSerice{
+	//保存群成员备注 请求参数：memberMark 
+	rpc saveMemberMark(RequestGroupMemberMark) returns (RespnoseGroupMemberMark);
+	
+	//批量保存群成员备注 请求参数：groupMemberMarks(List<GroupMemberMark>)-群成员备注集合
+	rpc saveBatchMemberMark(RequestGroupMemberMark) returns (RespnoseGroupMemberMark);
+	
+	//更新群成员备注 请求参数：groupId,userId(备注者),markedUserId(被备注者),mark(备注)
+	rpc updateMemberMark(RequestGroupMemberMark) returns (RespnoseGroupMemberMark);
+	
+	//删除所有用户对该用户的备注 请求参数:appId,userId
+	rpc delMemberMark(RequestGroupMemberMark) returns (RespnoseGroupMemberMark);
+	
+	//批量删除用户的备注 请求参数：groupId,idList(List<Long>)-群成员ID
+	rpc delMemberMarkBatch(RequestGroupMemberMark) returns (RespnoseGroupMemberMark);
+	
+	// 删除群组相关的所有备注(解散群用) 请求参数：groupId
+	rpc delAllMemberMark(RequestGroupMemberMark) returns (RespnoseGroupMemberMark);
+	
+	// 获取某人所有的成员备注信息 请求参数：groupId,userId 返回参数：groupMemberMarks(List<GroupMemberMark>- 群成员备注集合)
+	rpc getMemberMarks(RequestGroupMemberMark) returns (RespnoseGroupMemberMark);
+	
+	//  获取某人对群组某成员的备注信息 请求参数： groupId,userId,markedUserId 返回参数：groupMemberMark
+	rpc getMemberMark(RequestGroupMemberMark) returns (RespnoseGroupMemberMark);
+	
+	//批量得到群成员备注Map(groupId->ResultCollection.groupMemberMarks)
+	//请求参数：userId,reqBatchGroupIdInfos-(groupId,userIds(List<Long>))
+	//返回参数：groupId2GroupMemberMark (Map<String, GroupMemberMarkCollection> key:groupId->GroupMemberMarkCollection (包含的groupMemberMarks ))
+	rpc getGroupId2GroupMemberMarkMap(RequestGroupMemberMark) returns (RespnoseGroupMemberMark);
+	
+}

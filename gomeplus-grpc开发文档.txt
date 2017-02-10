@@ -1,0 +1,135 @@
+gomeplus-grpc开发文档说明(gomeplus-grpc服务作为独立的DB层操作服务):
+
+一.gomeplus-grpc服务端：
+
+1.在proto文件夹下的"*.proto"文件中定义接口,以及接口的请求和返回协议.然后通过pom中引入的protobuf插件,生成对应的g-RPC调用类和protobuf协议类（正常执行maven打包命令即可生成）。
+例如查询用户协议内容如下:
+//--------------------- 查询用户 --------------------------------
+
+//请求参数
+message RequestUser {
+    string appId = 1;
+    int64 imUserId = 2;
+}
+
+//返回参数
+message ResponseUser {
+    int64 uid = 1;
+    string token = 2;
+    int64 tokenExpires = 3;
+}
+
+//查询用户接口
+service GetUserService {
+    rpc GetUser(RequestUser) returns (ResponseUser);
+}
+
+//------------------------ 查询用户 end -----------------------------
+
+
+
+2.在对应的impl文件夹下实现自己定义的接口。实现类参考项目impl包下的查询用户接口实现类 GetUserServiceGrpcImpl.
+只需要继承g-rpc生成的基类 GetUserServiceGrpc.GetUserServiceImplBase,然后重写接口方法(实现我们真正需要的逻辑) 即可 查询用户接口 如下:
+
+//-------------------------------------------查询用户的实现参考--------------------------------------------------
+
+public class GetUserServiceGrpcImpl extends GetUserServiceGrpc.GetUserServiceImplBase {
+    private static Logger LOG = LoggerFactory.getLogger(GetUserServiceGrpcImpl.class);
+    private static UserInfoDao USER_DAO = new UserInfoDao();
+    @Override
+    public void getUser(GomeplusRpcServices.RequestUser request, StreamObserver<GomeplusRpcServices.ResponseUser> responseObserver) {
+        String appId = request.getAppId();
+        long imUserId = request.getImUserId();
+
+        long a = System.currentTimeMillis();
+        UserInfo userInfo = USER_DAO.getUserInfoByImUserId(appId, imUserId);
+        long b = System.currentTimeMillis();
+        if(userInfo != null){
+            GomeplusRpcServices.ResponseUser responseUser = GomeplusRpcServices.ResponseUser.newBuilder().setUid(userInfo.getUid())
+                    .setToken(userInfo.getToken()).setTokenExpires(userInfo.getTokenExpires()).build();
+            responseObserver.onNext(responseUser);
+        }else{
+            responseObserver.onNext(GomeplusRpcServices.ResponseUser.getDefaultInstance());
+        }
+        responseObserver.onCompleted();
+        LOG.info("GRPC ->GetUserServiceGrpc.getUser success,appId:{},imUserId:{},passTime:{}",appId,imUserId,(b-a));
+    }
+}
+
+//---------------------------------------------------------------------------------------------
+
+二.客户端调用：
+
+1.客户端需要在自己项目的pom中添加gomeplus-grpc的依赖。内容如下:
+
+<dependency>
+      <groupId>com.gomeplus.grpc</groupId>
+      <artifactId>gomeplus-grpc</artifactId>
+      <version>1.0-SNAPSHOT</version>
+</dependency>
+
+
+2.客户端调用(以查询用户为例):
+客户端rpc请求:
+
+	//构建请求消息协议:
+	final GomeplusRpcServices.RequestUser requestUser = GomeplusRpcServices.RequestUser.newBuilder().setAppId("TEST_APP_ID").setImUserId(665).build();
+
+
+
+	三种调用方式参考:
+-------------------------------------------------------------1.同步调用方式------------------------------------------------------------------------------
+	GomeplusRpcServices.ResponseUser responseUser = GetUserServiceGrpc.newBlockingStub(LoadBalanceRouter.INSTANCE.getRouterChannel()).withDeadlineAfter(5, TimeUnit.SECONDS).getUser(requestUser);
+
+-------------------------------------------------------------1.同步调用方式 end ------------------------------------------------------------------------------
+
+
+
+-------------------------------------------------------------2.异步回调请求结果的调用方式------------------------------------------------------------------------------
+	//2.异步回调请求结果的调用方式
+	//定义回调StreamObserver
+	StreamObserver<GomeplusRpcServices.ResponseUser> streamOberser = new StreamObserver<GomeplusRpcServices.ResponseUser>() {
+   		 @Override
+    	 public void onNext(GomeplusRpcServices.ResponseUser responseUser) {
+         	if (!responseUser.equals(GomeplusRpcServices.ResponseUser.getDefaultInstance())) {
+             		LOG.info("异步调用:uid:{},token:{}", responseUser.getUid(), responseUser.getToken());
+         		} else {
+          			LOG.info("用户不存在");
+         	 	}
+         }
+
+   		 @Override
+         public void onError(Throwable throwable) {
+          	//TODO
+         }
+
+         @Override
+         public void onCompleted() {
+            //TODO
+         }
+     };
+     //调用
+	 GetUserServiceGrpc.newStub(LoadBalanceRouter.INSTANCE.getRouterChannel()).withDeadlineAfter(5, TimeUnit.SECONDS).getUser(requestUser, streamOberser);
+
+-------------------------------------------------------------2.异步回调请求结果的调用方式 end ------------------------------------------------------------------------------
+
+
+
+-------------------------------------------------------------3.异步带返回值的调用方式------------------------------------------------------------------------------
+	 //3.异步带返回值的调用方式
+	 //异步调用得到ListenbleFuture对象
+	 ListenableFuture<GomeplusRpcServices.ResponseUser> listenableFuture = GetUserServiceGrpc.newFutureStub(LoadBalanceRouter.INSTANCE.getRouterChannel()).withDeadlineAfter(5, TimeUnit.SECONDS).getUser(requestUser);
+	 //通过ListenbleFuture对象获得返回结果
+     GomeplusRpcServices.ResponseUser user = listenableFuture.get();
+
+-------------------------------------------------------------3.异步带返回值的调用方式 end ------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+

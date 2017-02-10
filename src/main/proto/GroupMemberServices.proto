@@ -1,0 +1,190 @@
+syntax = "proto3";
+package com.gomeplus.grpc.protobuf;
+import "GomeplusRpcServices.proto";
+option java_multiple_files = false;
+//=============群成员========
+
+
+//GroupMember信息
+message GroupMember{
+	 string groupId=1;
+     int64 userId=2;
+     string nickName=3;
+     int32 identity=4;//身份;0:普通成员,1:创建者,2:管理员
+     int32 isTop=5; //置顶  0:否  1:是(置顶现在做到客户端，服务端没使用，可 忽略此参数)
+     int32 isShield=6; //屏蔽群消息 0:否  1:是
+     int32 isCollectionGroup=7;	//是否收藏 0：否，1：是
+     int32 status=8;//0:未通过 1:通过 2:拒绝
+     string groupNickName=9; //群昵称
+     int64 createTime=10;//创建的时间
+     int64 joinTime=11;//加入某个群的时间
+     int64 updateTime=12;
+     int64 maxSeq=13; // 成员群seq
+     int64 initSeq=14;// 加入群时，当前群消息seq
+     int64 readSeq=15;// 读取到的群消息最大seq
+     int64 receiveSeqId=16;//客户端接收到聊天消息最大seqId
+     int64 stickies=17; // 置顶;0:否,1:是
+     int32 isMsgBlocked=18;// 是否是免打扰;0:否,1:是
+     int64 groupCollectTime=19;//收藏时间
+}
+
+//GroupMember请求相关参数
+message RequestGroupMember{
+	string appId=1;
+	GroupMember groupMember=2;
+	int64 groupCreaterUid=3;//群主ID
+	bool isSaveToRedis=4;//是否保存到Redis中，主要是审核群成员时使用，现默认为不需审核，故可忽略此参数
+	string groupId=5;
+	int64 userId=6;
+	string nickName=7;
+	string groupNickName=8;//群昵称
+	int32 identity=9;//身份;0:普通成员,1:创建者,2:管理员
+	int32 isShield=10;//屏蔽群消息 0:否  1:是
+	int32 isTop=11;
+	int32 status=12;//0:未通过 1:通过 2:拒绝
+	repeated GroupMember groupMembers=13;//群成员集合List<GroupMember>
+	repeated int64 memberIds=14;//群成员ID集合List<Long>
+	int64 time=15; //时间-用于增量查询群成员使用
+	int32 page=16;	//第几页-分页拉取群成员和消息使用
+	int32 pageSize=17;//每页大小
+	int32 clientId=18;//客户端类型（分页拉群离线消息使用）  //10:ios/11:android/12:wp/20:pc/21:mac/22:ubuntu/23:linux/24:unix//30:Web/40:pad 默认为 0
+	int32 isCollection=19;//是否设置了群收藏
+	
+	int32 groupSize = 20;//某人的群数
+	
+    int64 traceId=21;//记录ID
+	string extra=22;//用于扩展信息sh
+	
+	repeated ReqBatchGroupIdInfo reqBatchGroupIdInfos=23;//批量拉取群成员集合
+	repeated string groupIds=24;//群成员集合List<GroupMember>
+	int32 stickie=25;//置顶：0-未置顶，1-置顶
+}
+message GroupMemberCollection{
+	repeated GroupMember groupMembers=1;//得到群成员的集合
+}
+
+//自定义返回结果-群相关-包括（Group,GroupMember,GroupQuitMember,GroupMemberMark）
+message RespnoseGroupMember{
+	bool success=1; //是否成功，若出现异常或其他错误返回false
+	int64 groupMemberCount=2;//群成员数量
+	GroupMember groupMember=3;//群成员
+	repeated GroupMember groupMembers=4;//群成员结合
+	map<string,string> memberMaxSeqMap =5 ;//群中最大消息映射Map
+	
+	int64 traceId=6;//记录ID
+	string extra=7;//用于扩展信息sh
+	repeated string groupIds=8;//群组ID的集合
+	map<string,GroupMemberCollection> groupId2GroupMember=9; //groupId->Map(GroupMember)
+	map<string,int64> groupId2Count=10;//groupId对应的群成员数
+}
+
+
+service GroupMemberSerice{
+	//保存群成员 请求参数：GroupMember,groupCreateId(群主ID),isSaveToRedis(需设置为true)
+	rpc saveGroupMember(RequestGroupMember) returns (RespnoseGroupMember);
+	//批量保存群成员信息 请求参数：groupMembers(List<GroupMember>),groupCreateId(群主ID),isSaveToRedis(需设置为true)
+	rpc saveBacthGroupMembers(RequestGroupMember) returns (RespnoseGroupMember);
+
+	//TODO 修改群成员信息的时候，因为0为有意义的，所以不能使用同一的修改方法 liuzhenhuan 20161020
+	//修改成员昵称 请求参数：groupId,userId,nickName
+	rpc updateNickName(RequestGroupMember) returns (RespnoseGroupMember);
+	
+	//修改群昵称(群名片)请求参数：groupId,userId,groupNickname-群名片
+	rpc updateGroupNickname(RequestGroupMember) returns (RespnoseGroupMember);
+	
+	//修改成员身份 请求参数：groupId,userId,identity-（身份;0:普通成员,1:创建者,2:管理员）
+	rpc updateIdentity(RequestGroupMember) returns (RespnoseGroupMember);
+	
+	//修改屏蔽群消息状态 请求参数：groupId,userId,isShield-（是否屏蔽群消息 0:否  1:是）
+	rpc updateShield(RequestGroupMember) returns (RespnoseGroupMember);
+	
+	//修改群置顶状态（置顶做到了客户端，可忽略）请求参数：groupId,userId,isTop（是否置顶- 0:否  1:是）
+	rpc updateIsTop(RequestGroupMember) returns (RespnoseGroupMember);
+	
+	//批量更新群成员状态信息 请求参数：groupId,memberIds(List<Long>)-群成员ID集合,status
+	rpc updateBacthStatus(RequestGroupMember) returns (RespnoseGroupMember);
+
+	//更新所有群成员状态为删除状态   请求参数：groupId,memberIds(List<Long>)-群成员ID集合,status
+	rpc updateStatusDelByGroupId(RequestGroupMember) returns (RespnoseGroupMember);
+
+	//根据 UserId删除群成员 请求参数：groupId,userId
+	rpc delGroupMemberByUserId(RequestGroupMember) returns (RespnoseGroupMember);
+	//根据 userIds批量删除群成员 请求参数：groupId,memberIds(List<Long>)-群成员ID集合
+	rpc delBatchGroupMembersByUids(RequestGroupMember) returns (RespnoseGroupMember);
+	//删除所有群组成员 请求参数：groupId
+	rpc delGroupAllMember(RequestGroupMember) returns (RespnoseGroupMember);
+
+
+	//获取群内 所有已通过的成员关系 请求参数：groupId 返回参数：groupMembers(List<GroupMember>)-所有群成员集合
+	rpc listGroupMembers(RequestGroupMember) returns (RespnoseGroupMember);
+	
+	//根据入群时间（大于） 和状态 获取群内 的成员集合 进行分页查询 
+	//请求参数：groupId,time（入群时间）,status,page,size 返回参数：groupMembers(List<GroupMember>)-所有群成员集合
+	rpc listGroupMembersPageByTimeAndStatus(RequestGroupMember) returns (RespnoseGroupMember);
+	
+	//根据UserId得到群成员 请求参数:groupId,userId
+	rpc getGroupMemberByUid(RequestGroupMember) returns (RespnoseGroupMember);
+	//根据UserId得到群成员 请求参数:groupId,userId 包含状态
+	rpc getGroupMemberByUidContainStatus(RequestGroupMember) returns (RespnoseGroupMember);
+	
+	//根据UserIds得到群成员集合 请求参数：groupId,memberIds(List<Long>)-群成员ID 返回参数：groupMembers(List<GroupMember>)-群成员集合
+	rpc getGroupMemberByUids(RequestGroupMember) returns (RespnoseGroupMember);
+	
+	//根据用户Id，得到所有加入的群的信息（仅自己在群里的信息）请求参数：userId 返回参数：groupMembers(List<GroupMember>)-群成员集合(仅有自己)
+	rpc listMemberGroups(RequestGroupMember) returns (RespnoseGroupMember);
+	
+	//根据用户Id，得到所有加入的群ID集合（仅自己在群里的信息）
+	rpc listMemberGroupIds(RequestGroupMember) returns (RespnoseGroupMember);
+
+	//统计群成员数 请求参数：groupId 返回参数：groupMemberCount(群成员数)
+	rpc countGroupMemberByGroupId(RequestGroupMember) returns (RespnoseGroupMember);
+	//redis中统计群成员数 请求参数：groupId 返回参数：groupMemberCount(群成员数)
+	rpc countGroupMemberFromRedis(RequestGroupMember) returns (RespnoseGroupMember);
+	//统计群成员数 请求参数：groupId 返回参数：groupMemberCount(群成员数)
+	rpc countGroupMemberByGroupIds(RequestGroupMember) returns (RespnoseGroupMember);
+	//获取用户群组消息最大seqId 请求参数：userId 返回参数：memberMaxSeqMap(Map<String,String> key:groupId->value:SeqId)
+	rpc listMemberMaxSeq(RequestGroupMember) returns (RespnoseGroupMember);
+	
+	//获取成员所有加入的群组包含readSeqId,initSeqId,receiveSeqId 
+	//请求参数：userId,clientId(10:ios/11:android/12:wp/20:pc/21:mac/22:ubuntu/23:linux/24:unix//30:Web/40:pad 默认为 0)
+	//返回参数：groupMembers(List<GroupMember>)-群成员集合（仅自己，包含readSeqId,initSeqId,receiveSeqId ）
+	rpc listMemberSeq(RequestGroupMember) returns (RespnoseGroupMember);
+	
+	//设置是否群收藏 请求参数：userId,isCollection（是否设置群收藏：0-否，1-是）
+	rpc updateGroupCollection(RequestGroupMember) returns (RespnoseGroupMember);
+	
+	//TODO 得到已经收藏的群 暂时删除-没有实现
+	rpc getCollectionGroups(RequestGroupMember) returns (RespnoseGroupMember);
+	
+	//批量、增量得到群成员 
+	//请求参数：reqBatchGroupIdInfos( List<ReqBatchGroupIdInfo>)-需要（groupId，lastPullTimestamp,reqBatchGroupIdInfo,status）
+	//返回参数：groupMemebers (List<GroupMember>)-群成员集合
+	rpc listGroupMembersByGroupIds(RequestGroupMember) returns (RespnoseGroupMember);
+	
+	/*
+		批量、增量得到群成员映射Map(groupId->ResultCollection.groupMembers) 
+		请求参数：reqBatchGroupIdInfos( List<ReqBatchGroupIdInfo>)-需要（groupId，lastPullTimestamp,reqBatchGroupIdInfo,status）
+		返回参数：groupId2GroupMember (Map<String,GroupMemberCollection>-- key:groupId->GroupMemberCollection(包含的groupQuitMembers) ) 
+	*/
+	rpc getGroupId2GroupMemberMap(RequestGroupMember) returns (RespnoseGroupMember);
+	
+
+	/*
+		得到所有收藏的群，仅用于同步 群收藏到群收藏的分表中
+	*/
+	rpc getAllGroupCollections(RequestGroupMember) returns (RespnoseGroupMember);
+	/*
+		更新置顶
+	*/
+	rpc updateStickie(RequestGroupMember) returns (RespnoseGroupMember);
+	/*
+		根据groupId集合得到group群成员列表信息
+	*/
+	rpc getGroupMembersByUidAndGroupIds(RequestGroupMember) returns (RespnoseGroupMember);
+	/*
+		得到最早加入群的用户
+	*/
+	rpc getEarliestAddGroupMember(RequestGroupMember) returns (RespnoseGroupMember);
+
+}
+

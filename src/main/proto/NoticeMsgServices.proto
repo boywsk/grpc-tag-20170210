@@ -1,0 +1,50 @@
+syntax = "proto3";
+package com.gomeplus.grpc.protobuf;
+
+option java_multiple_files = false;
+
+
+//功能性消息
+message SaveNoticeMsg{
+	string msgId=1;
+	int64 fromUid=2;
+	int64 toUid=3;
+	string groupId=4;
+	int32 noticeType=5;
+	string NoticeMsgJson=6;
+	int64 sendTime=7;
+	int32 platform=8;
+}
+
+//功能性消息请求参数
+message RequestNoticeMsg{
+	int32 appId=1;
+	int64 userId=2;
+	int32 clientId=3;
+	int64 traceId=4;
+	int32 pageSize=5;
+	int64 time=6;
+	
+	string extra=7;//用于扩展信息sh
+}
+//功能性消息返回参数
+message RespnseNoticeMsg{
+	repeated SaveNoticeMsg saveNoticeMsgs=1;//功能性消息集合
+	int64 offlineNoticeMsgTotalCount=2;//离线功能性消息数
+	bool success=3;
+	
+    int64 traceId=4;//记录ID
+	string extra=5;//用于扩展信息sh
+}
+
+service NoticeMsgService{
+	// 分页获取功能性离线消息
+	//请求参数： userId,time(上一次拉群时间),pageSize,clientId 
+	//返回参数：saveNoticeMsgs(List<SaveNoticeMsg>)--功能性消息集合
+	rpc listOfflineNoticeMsg(RequestNoticeMsg) returns (RespnseNoticeMsg);
+	
+	// 得到离线消息的总记录数 
+	//请求参数：  userId,time(上一次拉群时间),pageSize,clientId 
+	//返回参数：offlineNoticeMsgTotalCount --离线功能性消息数
+	rpc getOfflineNoticeMsgTotalCount(RequestNoticeMsg) returns (RespnseNoticeMsg);
+}

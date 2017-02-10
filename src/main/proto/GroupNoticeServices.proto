@@ -1,0 +1,61 @@
+syntax = "proto3";
+package com.gomeplus.grpc.protobuf;
+
+option java_multiple_files = false;
+//getGroupNotice updateGroupNotice saveGroupNotice
+//群公告信息
+message GroupNotice{
+	string groupId=1;
+	string noticeContent=2;//群公告内容
+	int64 userId=3;//创建者ID
+	int64 createTime=4;
+	int64 updateTime=5;
+}
+//群公告请求参数
+message RequestGroupNotice{
+	GroupNotice groupNotice=1;
+	string appId=2;
+	string groupId=3;
+	int64 userId=4;
+	string noticeContent=5;
+	
+    int64 traceId=6;//记录ID
+	string extra=7;//用于扩展信息
+	
+	repeated string groupIds=8;//群IDs
+	
+}
+//群公告返回参数
+message ResponseGroupNotice{
+	GroupNotice groupNotice=1; //群公告
+	bool success=2;
+	
+    int64 traceId=3;//记录ID
+	string extra=4;//用于扩展信息sh
+	
+	repeated GroupNotice groupNotices=5;//群公告集合
+	
+	map<string,GroupNotice> groupId2Notice=6; //groupId->Map(GroupNotice)
+	
+}
+
+
+service GroupNoticeService{
+	//保存群公告 请求参数：GroupNotice
+	rpc saveGroupNotice(RequestGroupNotice) returns (ResponseGroupNotice);
+	
+	//得到群公告 请求参数： groupId 返回参数：groupNotice
+	rpc getGroupNotice(RequestGroupNotice) returns (ResponseGroupNotice);
+	
+	//修改群公告 请求参数：groupId,userId,noticeContent(可以为空)
+	rpc updateGroupNotice(RequestGroupNotice) returns (ResponseGroupNotice);
+	//插入或更新群公告 请求参数：groupId,userId,noticeContent(可以为空)
+	rpc updateOrInsertGroupNotice(RequestGroupNotice) returns (ResponseGroupNotice);
+	//根据groupids批量得到公告
+	//请求参数： groupIds(List<String>)--群ID集合
+	//返回参数：groupNotices(List<GroupNotice>)-群公告集合
+	rpc getGroupNoticeByGroupIds(RequestGroupNotice) returns (ResponseGroupNotice);
+	
+	//TODO 暂时没有实现，以后增加 根据groupId集合批量得到群成员Map(groupId->GroupNoticeMap)
+	rpc getGroupId2NoticeMap(RequestGroupNotice) returns (ResponseGroupNotice);
+}

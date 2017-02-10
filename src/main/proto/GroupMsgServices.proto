@@ -1,0 +1,103 @@
+syntax = "proto3";
+package com.gomeplus.grpc.protobuf;
+
+option java_multiple_files = false;
+
+//Msg 相关
+message Attachment{
+	string id=1;//附件id
+	string attachName=2;// 附件名称
+	int32 attachType=3;// 附件类型
+	string attachUrl=4;// 附件url
+	int32 attachSize=5;// 附件大小
+	int32 width=6;
+	int32 height=7;
+	int32 attachPlaytime=8;// 播放时间
+	int64 attachUploadtime=9;
+	string extra=10;
+}
+
+message MsgLocation{
+	string msgId=1;//消息id
+	double longitude=2; // 经度
+	double latitude=3; // 维度
+	string imgUrl=4; // 截图地址
+	string content=5; // 地址描述
+	string extra=6; // 扩展
+}
+
+message AtMsg{
+	int32 atType=1;// 消息@类型；1:指定某个/些人、2:所有人
+	repeated int64 atUids=2;// 被@的用户id列表
+	string extra=3; // 扩展信息
+}
+
+message GroupMsg{
+	string groupId=1; // 群组id
+	int32 groupType=2; // 群组类型，1:单聊，2:群聊
+	string groupName=3; // 群组名称
+	string msgId=4; // 消息id
+	int32 msgType=5; // 1:文本、2:语音、3:图片、4:附件、5:分享/转发(通过url)、...
+	string msgBody=6; // 消息体
+	int64 fromUid=7; // 发送者id
+	string fromName=8; // 发送者名称
+	string fromRemark=9;// 消息发送者在该群中的昵称
+	int64 toUid=10;// 接收者id
+	int64 msgSeqId=11; // 自增计数
+	string msgUrl=12;// 消息url
+	repeated Attachment msgAttch=13; // 附件列表
+	MsgLocation msgLocation=14; // 转发和分享链接URL
+	repeated int64 atUids=15;// 被@的用户id列表
+	int64 sendTime=16; // 发送服务器时间
+	repeated int64 unReadUids=17; //未读用户id 暂时存储idList中
+	repeated int64 readUids=18;//已读用户id
+	int32 isRevoke=19;//是否撤销；0:否，1:是
+	string extra=20; // 扩展信息
+	int32 origiImg=21;//消息类型为图片时，是否有原图；0:否，1:是
+
+	int32 appId=22;
+	int32 systemMsgType=23;// 消息类型 群量广播 1-普通系统消息 2-全量广播消息
+	bool isPersist=24;// 是否持久化
+	bool isPushBlock=25;// 是否 apns push
+	bool containSelf=26;// 消息是否包含自己
+
+	AtMsg atMsg=27;//im@消息
+}
+
+
+message RequestGroupMsg{
+	int32 appId=1;
+	int64 userId=2;
+	string groupId=3;
+	int64 seqId=4;
+	int32 size=5;
+	int64 time=6;
+	
+    int64 traceId=7;//记录ID
+	string extra=8;//用于扩展信息sh
+	string msgId=9;//消息Id
+}
+message ResponseGroupMsg{
+	int64 initSeq=1;
+	repeated GroupMsg grouMsgs=2;
+	bool success=3;
+	GroupMsg groupMsg=4;//用于获取已/未读人员列表
+    int64 traceId=5;//记录ID
+	string extra=6;//用于扩展信息sh
+}
+
+
+service GroupMsgService{
+	//分页获取聊天消息
+	//请求参数：userId,groupId,seqId（群当前最大消息ID）,size(每页大小),time（上次拉群的时间）,
+	//返回参数：GrouMsgs (List<GroupMsg>)-群消息集合
+	rpc listGroupMsg(RequestGroupMsg) returns(ResponseGroupMsg);
+	//从redis中获取成员initSeq
+	rpc getInitSeqByGroupIdAndUid(RequestGroupMsg) returns(ResponseGroupMsg);
+	//获取单条消息的已/未读人员列表
+	rpc getMarkReadMsg(RequestGroupMsg) returns(ResponseGroupMsg);
+
+}
+
+
+

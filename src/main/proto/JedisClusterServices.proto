@@ -1,0 +1,107 @@
+syntax = "proto3";
+package com.gomeplus.grpc.protobuf;
+
+option java_multiple_files = false;
+//========JedisCluster相关================
+//Redis 请求参数
+message ReqJedisCulster{
+	string key=1;//Key
+	string field=2;	//map中 feild
+	int32 seconds=3;//有效时间-单位秒
+	string value=4;//设置到Key中的新的值
+	
+	int64 traceId=5;//记录ID
+	string extra=6;//用于扩展信息
+	
+	string appId=7;//appId->用户查询最新昵称
+	int64 userId=8;//用户ID->用户查询最新昵称
+	string nickName=9;//昵称->用户查询最新昵称
+	
+	repeated int64 usrIds=10;//用户ID集合
+}
+//Redis 返回参数
+message RspJedisCluster{
+	bool isExist=1;//Key 是否存在
+	string value=2;//string值
+	repeated string values=3;//set or list 集合
+	map<string,string> resultMap =4 ;//返回的map
+	bool success=5;//调用是否成功
+
+	int64 traceId=6;//记录ID
+	string extra=7;//用于扩展信息
+
+	int64 lockCode=8;//分布式锁的返回代码
+	string nickName=9;//昵称
+
+	map<int64,string> idNickNameMap =10 ;//返回的用户ID->昵称Map
+}
+
+//Redis 服务接口
+service JedisClusterService{
+	//Key值是否存在 请求参数：key(string) 返回参数：isExist(bool)
+	rpc isExistKey(ReqJedisCulster) returns (RspJedisCluster);
+
+	//获取单个值-string  请求参数：key(string) 返回参数：value(string)
+	rpc getValue(ReqJedisCulster) returns (RspJedisCluster);
+
+	//获取list中所有的值  请求参数：key(string) 返回参数：values(list<string>)-list集合
+	rpc getAllList(ReqJedisCulster) returns (RspJedisCluster);
+
+	//获取set中所有的值 请求参数：key(string) 返回参数：values(list<string>)-list集合
+	rpc getAllSet(ReqJedisCulster) returns (RspJedisCluster);
+
+	//获取map中所有的值 请求参数：key(string) 返回参数：resultMap(Map<String, String>)-map集合
+	rpc getAllMap(ReqJedisCulster) returns (RspJedisCluster);
+
+
+	//根据field得到map中的value 请求参数：key(string),field（map集合中的key） 返回参数：value-map中key(field)对应的值
+	rpc getValueInMapByField(ReqJedisCulster) returns (RspJedisCluster);
+
+
+	//设置某个值-string 请求参数：key(string),value(string)
+	rpc setValue(ReqJedisCulster) returns (RspJedisCluster);
+
+	//设置某个值-string(有效时间(秒)) 请求参数：key(string),value(string),seconds-有效时间(秒)
+	rpc setExValue(ReqJedisCulster) returns (RspJedisCluster);
+
+	//设置分布式锁 请求参数：key(string),value(string) 返回参数 lockCode-分布式锁的值 1-成功，0失败
+	rpc setNxValue(ReqJedisCulster) returns (RspJedisCluster);
+
+
+	//向List增加值  请求参数:key(string),value(string)
+	rpc appendList(ReqJedisCulster) returns (RspJedisCluster);
+
+	//向Set增加值 key(string),value(string)
+	rpc addToSet(ReqJedisCulster) returns (RspJedisCluster);
+
+	//向Map设置值 key(string),value(string),field(string)-(map中的key)
+	rpc putToMap(ReqJedisCulster) returns (RspJedisCluster);
+
+	//根据Key删除redis中的数据  请求参数：key
+	rpc deleteByKey(ReqJedisCulster) returns (RspJedisCluster);
+
+	//根据value删除Set中指定的数据  请求参数:key(string),value(string)
+	rpc deleteValueInSet(ReqJedisCulster) returns (RspJedisCluster);
+
+	//根据删除Map的指定Field的数据  key(string),field(string)-(map中的key)
+	rpc deleteFieldInMap(ReqJedisCulster) returns (RspJedisCluster);
+
+	//得到最新昵称-和业务相关
+	//请求参数：appId(string),userId(long),nickName(string)-昵称
+	//返回参数：nickName(string)-最新昵称
+	rpc getNowNickName(ReqJedisCulster) returns (RspJedisCluster);
+
+	//根据用户ID集合得到昵称Map
+	//请求参数：usrIds
+	//返回参数：idNickNameMap
+	rpc getId2NickNameMapByUserIdList(ReqJedisCulster) returns (RspJedisCluster);
+
+
+	
+}
+
+
+
+
+
+

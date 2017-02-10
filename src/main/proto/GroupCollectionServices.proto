@@ -1,0 +1,48 @@
+syntax = "proto3";
+package com.gomeplus.grpc.protobuf;
+
+option java_multiple_files = false;
+//getGroupNotice updateGroupNotice saveGroupNotice
+
+
+//群收藏信息
+message GroupCollection{
+	string groupId=1;
+	int64 userId=2;
+	int64 updateTime=3;
+	int32 isDel=4;//是否删除，0：否，1：是
+}
+//群收藏请求参数
+message RequestGroupCollection{
+	string appId=1;
+	string groupId=2;
+	int64 userId=3;
+	int32 isDel=4;
+	int64 collectionTime=5;//收藏时间
+	
+	int64 traceId=6;//记录ID
+	string extra=7;//用于扩展信息
+}
+//群收藏返回参数
+message ResponseGroupCollection{
+	bool success=1; //是否成功，若出现异常或其他错误返回false
+	repeated GroupCollection groupCollections=2;
+	int64 traceId=3;//记录ID
+	string extra=4;//用于扩展信息
+}
+
+service GroupCollectionService{
+	/*
+		更新或者插入群收藏 
+		请求参数：appId,groupId,userId,isDel
+	*/
+	rpc updateOrInsertGroupCollection(RequestGroupCollection) returns (ResponseGroupCollection);
+	/*
+		得到默认收藏的群
+		请求参数：appId,userId
+		返回参数：groupCollections
+	*/
+	rpc getCollectGroupsByUserId(RequestGroupCollection) returns (ResponseGroupCollection);
+}
+
+

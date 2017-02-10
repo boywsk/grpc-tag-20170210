@@ -1,0 +1,81 @@
+syntax = "proto3";
+package com.gomeplus.grpc.protobuf;
+import "GomeplusRpcServices.proto";
+option java_multiple_files = false;
+
+//----------------------GroupQuitMember 相关------------
+//退出群成员信息
+message GroupQuitMember{
+	int64 userId=1; // 用户id
+	string groupId=2; // 群组id
+	int64 createTime=3;// 创建时间
+	int64 updateTime=4;//
+
+}
+//退出群成员请求参数
+message RequestGroupQuitMember{
+	string appId=1;
+	GroupQuitMember groupQuitMember=2;
+	repeated GroupQuitMember groupQuitMembers=3;
+	string groupId=4;
+	int64 userId=5;
+	repeated int64 memberIds=6; 
+	int64 time=7;
+	
+    int64 traceId=8;//记录ID
+	string extra=9;//用于扩展信息sh
+	
+	repeated ReqBatchGroupIdInfo reqBatchGroupIdInfos=10;//批量拉取群成员集合
+}
+//返回的集合
+message GroupQuitMemberCollection{
+	repeated GroupQuitMember groupQuitMembers=1;//退出群集合
+}
+
+//自定义返回结果-群相关-包括（Group,GroupMember,GroupQuitMember,GroupMemberMark）
+message RespnoseGroupQuitMember{
+	bool success=1; //是否成功，若出现异常或其他错误返回false
+	GroupQuitMember groupQuitMember=2;//退出的群成员
+	repeated GroupQuitMember groupQuitMembers=3;//退出的群成员集合
+	
+	int64 traceId=4;//记录ID
+	string extra=5;//用于扩展信息sh
+	map<string,GroupQuitMemberCollection> groupId2GroupQuitMember=6; //groupId->Map(GroupQuitMember)
+	int64 count=7;//退出群成员数
+}
+
+
+
+service GroupQuitMemberService{
+	//保存退出群成员 请求参数：GroupQuitMember 
+	rpc saveGroupQuitMember(RequestGroupQuitMember) returns (RespnoseGroupQuitMember);
+	
+	//批量保存退出群成员 请求参数：groupQuitMembers-List<GroupQuitMember>
+	rpc saveGroupQuitMembers(RequestGroupQuitMember) returns (RespnoseGroupQuitMember);
+	
+	//根据退出群组id和用户id 删除记录 请求参数：groupId,userId
+	rpc delQuitMember(RequestGroupQuitMember) returns (RespnoseGroupQuitMember);
+	
+	//删除多个成员 请求参数： groupId memberIds(List<Long>)-群成员ID集合
+	rpc delQuitMembers(RequestGroupQuitMember) returns (RespnoseGroupQuitMember);
+	
+	//根据用户userId,groupId获取退出成员 请求参数：groupId,userId 返回参数：groupQuitMember
+	rpc getGroupQuitMember(RequestGroupQuitMember) returns (RespnoseGroupQuitMember);
+	
+	//根据groupId、time获取退出时间大于time的退出成员集合 
+	//请求参数：groupId ,time 
+	// 返回参数：groupQuitMember(List<GroupQuitMember>)-退出群成员集合
+	rpc listGroupQuitMemberByGroupId(RequestGroupQuitMember) returns (RespnoseGroupQuitMember);
+	
+	//ZHTODO 没有实现方法 我要删除 根据群ID信息和lastPushTimestamp 批量拉群获取退出成员
+	rpc listGroupQuitMemberByGroupIdInfos(RequestGroupQuitMember) returns (RespnoseGroupQuitMember);
+	
+	//批量（增量）得到退出群成员Map(groupId->ResultCollection.groupQuitMembers)
+	//请求参数：reqBatchGroupIdInfos (List<ReqBatchGroupIdInfo> {包含groupId,createTime})
+	//返回参数：groupId2GroupQuitMember (Map<String, GroupQuitMemberCollection>--key:groupId->GroupQuitMemberCollection(包含))
+	rpc getGroupId2GroupQuitMemberMap(RequestGroupQuitMember) returns (RespnoseGroupQuitMember);
+
+	//批量（增量）得到退出群成员数
+	rpc countQuitGroupMember(RequestGroupQuitMember) returns (RespnoseGroupQuitMember);
+
+}
